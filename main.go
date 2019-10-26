@@ -80,15 +80,37 @@ func main(){
   )
   flag.Parse()
 
-  // TODO: Set up initial checks.
-  if !fileExists(*inputFile) {
-    log.Fatalf("ERROR: Input file does not exist.")
+  var bytes []byte
+  var err   error
+
+  if len(*inputFile) == 0  {
+    log.Fatalf("ERROR: No input file provided.")
+  } else if *inputFile == "-" {
+    // If input data comes from pipe everything is fine, otherwise exit
+    fi, _ := os.Stdin.Stat()
+    if (fi.Mode() & os.ModeCharDevice) == 0 {
+      bytes, err = ioutil.ReadAll(os.Stdin)
+      if err != nil {
+        log.Fatalf("ERROR: Cannot read from stdin: %s", err)
+      }
+      if len(bytes) == 0 {
+        log.Fatalln("ERROR: No input provided.")
+      }
+    } else {
+      log.Fatalln("ERROR: Data from terminal is not supported.")
+    }
+  } else if fileExists(*inputFile) {
+    bytes, err = ioutil.ReadFile(*inputFile)
+    if err != nil {
+      log.Fatalf("ERROR: Cannot read input file: %s", err)
+    }
+    if len(bytes) == 0 {
+      log.Fatalln("ERROR: Empty input file provided.")
+    }
+  } else {
+    log.Fatalln("ERROR: Input file does not exist.")
   }
 
-  bytes, err := ioutil.ReadFile(*inputFile)
-  if err != nil {
-    log.Fatalf("ERROR: Cannot read input file: %s", err)
-  }
 
   var cm ConfigMap
   if err = cm.loadConfigMap(bytes); err != nil {
